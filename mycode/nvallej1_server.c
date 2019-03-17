@@ -1,5 +1,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h> // for printing an internet address
+#include <netdb.h> // For gethostbyaddr() function
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -11,6 +12,7 @@
 #include <unistd.h> // for close() and gethostname()
 
 #define MAX 256
+#define ADDRESS "128.226.114.206"
 #define PORT 1235
 
 #ifndef ERESTART
@@ -22,12 +24,13 @@ main(int argc, char ** argv) {
 	int fd;
 	int rqst; // This represents the socket accepting the request
 	char hostname[128]; // Stores the hostname
+	struct hostent *hp; // host information of server
+	struct in_addr ip4addr; // server address - to be used by gethostbyaddr
 	struct sockaddr_in myaddr; // holds information about this server 
 	struct sockaddr_in client_addr; // client address
 	socklen_t alen; // length of client address struct
 	int sockoptval = 1;
 	gethostname(hostname, sizeof(hostname));
-
 	
 	// Step 1: Create a socket
 	if ((fd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -39,10 +42,21 @@ main(int argc, char ** argv) {
 	// Step 2: Identify (name) a socket
 	memset((char *) &myaddr, 0, sizeof(myaddr)); // alloc space
 	
+	inet_pton(AF_INET, ADDRESS, &ip4addr); // Here we are going from a "printable" address to its corresponding network format
+	// lookup hostname of the server given the server address
+	hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
+	if (!hp) {
+		printf ("gethostbyaddr: failed to get host name given address");
+		close(fd);
+		return 0;
+	}
+	
 	// Fill in fields for struct sockaddr_in myaddr
 	myaddr.sin_family = AF_INET;
 	myaddr.sin_port = htons(PORT);
-	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	// now we can put the host's address into the servaddr struct
+	memcpy ((void *)&myaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
+	//myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	// now bind socket fd to myaddr
 	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {

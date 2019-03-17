@@ -1,8 +1,8 @@
+#include <netinet/in.h>
+#include <arpa/inet.h> // for inet_pton
+#include <netdb.h> // For gethostbyaddr() function
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h> // For gethostbyaddr() function
-#include <arpa/inet.h> // for inet_pton
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
