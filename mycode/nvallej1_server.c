@@ -11,6 +11,7 @@
 #include <unistd.h> // for close() and gethostname()
 
 #define MAX 256
+#define PORT 1235
 
 #ifndef ERESTART
 #define ERESTART EINTR
@@ -18,10 +19,15 @@
 
 int 
 main(int argc, char ** argv) {
-	char hostname[128]; // Get the host name
+	int fd;
+	int rqst; // This represents the socket accepting the request
+	char hostname[128]; // Stores the hostname
+	struct sockaddr_in myaddr; // holds information about this server 
+	struct sockaddr_in client_addr; // client address
+	socklen_t alen; // length of client address struct
+	int sockoptval = 1;
 	gethostname(hostname, sizeof(hostname));
 
-	int fd;
 	
 	// Step 1: Create a socket
 	if ((fd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -31,31 +37,26 @@ main(int argc, char ** argv) {
 	}
 
 	// Step 2: Identify (name) a socket
-	struct sockaddr_in myaddr; // address of this service
-	int port = 1235; 
-
-	memset((char *) &myaddr, 0, sizeof(myaddr));
+	memset((char *) &myaddr, 0, sizeof(myaddr)); // alloc space
+	
+	// Fill in fields for struct sockaddr_in myaddr
 	myaddr.sin_family = AF_INET;
-	myaddr.sin_port = htons(port);
+	myaddr.sin_port = htons(PORT);
 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	// now bind socket fd to myaddr
 	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
 		perror("bind failed");
 		close(fd);
 		return 0;
 	}
 
-	/* Step 3b. Accept connections on the server */
-	int rqst; // This represents the socket accepting the request
-	socklen_t alen; // length of address struct
-	struct sockaddr_in client_addr; // client address
-	int sockoptval = 1;
-
-
-	// allow immeiate reuse of the port
+	/* Step 3. Listen for connections to the server */
+	
+	// allow immediate reuse of PORT
 	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(int));
 
-	printf("server started on %s, listening on port %d. ip=%s \n", hostname, 128, inet_ntoa(myaddr.sin_addr)); // To see server info
+	printf("server started on %s, listening on port %d. ip=%s \n", hostname, myaddr.sin_port, inet_ntoa(myaddr.sin_addr)); // To see server info
 
 	/* set the socket for listening  */
 	if (listen(fd, 5) < 0) {

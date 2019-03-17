@@ -8,84 +8,57 @@
 #include <unistd.h>
 
 #define MAX 256
+#define ADDRESS "128.226.114.206"
+#define PORT 1235
 
 int 
 main(int argc, char ** argv) {
-	// Step 1: Create a socket
-	int fd;
+	int fd; // this will hold our socket file descriptor
+	int port = PORT; // port between clietn and server will be the same
+	struct sockaddr_in servaddr; // holds server information
+	struct hostent *hp; // host information of server
+	struct in_addr ip4addr; // server address - to be used by gethostbyaddr
+	char buffer[MAX]; // Used for terminal input for IRC Chat
 	
+	// Step 1: Create the socket
 	if ((fd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror ("cannot create socket");
 		close(fd);
 		return 0;
 	}
 
-	// Step 2: Identify (name) a socket
-	struct sockaddr_in myaddr;
+	/* Step 2. Connect to the server from a client */
+	inet_pton(AF_INET, ADDRESS, &ip4addr); // Here we are going from a "printable" address to its corresponding network format
 
-	memset ((char *) &myaddr, 0, sizeof (myaddr));
-	myaddr.sin_family = AF_INET;
-	myaddr.sin_addr.s_addr = htonl (INADDR_ANY);
-	myaddr.sin_port = htons(0);
-
-	/*if (bind (fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
-		perror("bind failed");
-		close(fd);
-		return 0;
-	}*/
-
-	/* Step 3a. Connect to a server from a client */
-	
-	int port = 1235;
-
-	/* Connection from host to server setup */
-	struct hostent *hp; // host information
-	struct sockaddr_in servaddr; // server address
-	struct in_addr ip4addr; // server address
-	
-	inet_pton(AF_INET, "128.226.114.206", &ip4addr);
-	
-	char host[128];
-	
-	if (gethostname(host, sizeof(host)) == -1 ) {
-		perror ("gethostname");
-		return -1;
-	} 
-
-	// we now have to setup the sockaddr_in struct like we did with bind
+	/* we now have to setup the sockaddr_in struct */
 	memset ((char *)&servaddr, 0, sizeof(servaddr));
+	
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(port);
-
-	// lookup address of the server given the name
-	// hp = gethostbyname(host); 
+	
+	// lookup hostname of the server given the server address
 	hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
-	//printf("Host name: %s\n", hp->h_name);
 	if (!hp) {
-		fprintf (stderr, "could not obtain adddress of %s\n", host);
+		printf ("gethostbyaddr: failed to get host name given address");
 		close(fd);
 		return 0;
 	}
 	
-	// Figure out how to do this!
-	// this is the server IP: 128.226.114.206
-	// You need to put this address in servaddr.sin_addr
+	printf("Server Host Name: %s\n", hp->h_name);
 	
 	// now we can put the host's address into the servaddr struct
 	memcpy ((void *)&servaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
 
-	// Finally we can establish a connection to the server
+	// Step 3. Finally we can establish a connection to the server
 	if (connect (fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
 		perror ("connect failed");
 		close(fd);
 		return 0;
 	}
 
-	printf ("connected socket = %d", fd);
+	printf ("Connected socket = %d", fd);
 	
-	/* Write data to server */
-	char buffer[MAX];
-	
+	/* Step 4: Start IRC Chat */
 	printf ("\nType 'q' to exit chat room\n");
 	
 	while(1) {
