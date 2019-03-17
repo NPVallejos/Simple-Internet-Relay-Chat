@@ -44,7 +44,8 @@ main(int argc, char ** argv) {
 	
 	inet_pton(AF_INET, ADDRESS, &ip4addr); // Here we are going from a "printable" address to its corresponding network format
 	// lookup hostname of the server given the server address
-	hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
+	//hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
+	hp = gethostbyname(hostname);
 	if (!hp) {
 		printf ("gethostbyaddr: failed to get host name given address");
 		close(fd);
@@ -56,7 +57,7 @@ main(int argc, char ** argv) {
 	myaddr.sin_port = htons(PORT);
 	// now we can put the host's address into the servaddr struct
 	memcpy ((void *)&myaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
-	//myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	//myaddr.sin_addr.s_addr = htonl(INADDR_ANY); // this does not get the correct ip address
 
 	// now bind socket fd to myaddr
 	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
@@ -66,7 +67,6 @@ main(int argc, char ** argv) {
 	}
 
 	/* Step 3. Listen for connections to the server */
-	
 	// allow immediate reuse of PORT
 	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(int));
 
