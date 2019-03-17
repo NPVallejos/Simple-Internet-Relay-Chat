@@ -41,9 +41,9 @@ main(int argc, char ** argv) {
 	/* Connection from host to server setup */
 	struct hostent *hp; // host information
 	struct sockaddr_in servaddr; // server address
-	//struct in_addr ip4addr; // server address
+	struct in_addr ip4addr; // server address
 	
-	//inet_pton(AF_INET, "0.0.0.0", &ip4addr);
+	inet_pton(AF_INET, "128.226.114.206", &ip4addr);
 	
 	char host[128];
 	
@@ -58,14 +58,19 @@ main(int argc, char ** argv) {
 	servaddr.sin_port = htons(port);
 
 	// lookup address of the server given the name
-	hp = gethostbyname(host); //hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
+	// hp = gethostbyname(host); 
+	hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
 	//printf("Host name: %s\n", hp->h_name);
 	if (!hp) {
 		fprintf (stderr, "could not obtain adddress of %s\n", host);
 		close(fd);
 		return 0;
 	}
-
+	
+	// Figure out how to do this!
+	// this is the server IP: 128.226.114.206
+	// You need to put this address in servaddr.sin_addr
+	
 	// now we can put the host's address into the servaddr struct
 	memcpy ((void *)&servaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
 
