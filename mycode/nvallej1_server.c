@@ -12,8 +12,7 @@
 #include <unistd.h> // for close() and gethostname()
 
 #define MAX 256
-#define ADDRESS "128.226.114.206"
-#define PORT 1235
+#define PORT 1234
 
 #ifndef ERESTART
 #define ERESTART EINTR
@@ -30,7 +29,6 @@ main(int argc, char ** argv) {
 	struct sockaddr_in client_addr; // client address
 	socklen_t alen; // length of client address struct
 	int sockoptval = 1;
-	gethostname(hostname, sizeof(hostname));
 	
 	// Step 1: Create a socket
 	if ((fd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -42,9 +40,9 @@ main(int argc, char ** argv) {
 	// Step 2: Identify (name) a socket
 	memset((char *) &myaddr, 0, sizeof(myaddr)); // alloc space
 	
-	inet_pton(AF_INET, ADDRESS, &ip4addr); // Here we are going from a "printable" address to its corresponding network format
-	// lookup hostname of the server given the server address
-	//hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET);
+	//inet_pton(AF_INET, ADDRESS, &ip4addr); // Here we are going from a "printable" address to its corresponding network format
+	//hp = gethostbyaddr(&ip4addr, sizeof(ip4addr), AF_INET); // lookup hostname of the server given the server address
+	gethostname(hostname, sizeof(hostname));
 	hp = gethostbyname(hostname);
 	if (!hp) {
 		printf ("gethostbyaddr: failed to get host name given address");
@@ -55,10 +53,11 @@ main(int argc, char ** argv) {
 	// Fill in fields for struct sockaddr_in myaddr
 	myaddr.sin_family = AF_INET;
 	myaddr.sin_port = htons(PORT);
-	// now we can put the host's address into the servaddr struct
-	memcpy ((void *)&myaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
-	//myaddr.sin_addr.s_addr = htonl(INADDR_ANY); // this does not get the correct ip address
-
+	memcpy ((void *)&myaddr.sin_addr, hp->h_addr_list[0], hp->h_length); // now we can put the host's address into the servaddr struct
+	
+	// allow immediate reuse of PORT
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(int));
+	
 	// now bind socket fd to myaddr
 	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
 		perror("bind failed");
@@ -67,12 +66,10 @@ main(int argc, char ** argv) {
 	}
 
 	/* Step 3. Listen for connections to the server */
-	// allow immediate reuse of PORT
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(int));
-
 	printf("server started on %s, listening on port %d. ip=%s \n", hostname, myaddr.sin_port, inet_ntoa(myaddr.sin_addr)); // To see server info
 
 	/* set the socket for listening  */
+	// allow up to 5 children
 	if (listen(fd, 5) < 0) {
 		perror("listen failed");
 		exit(1);
@@ -80,9 +77,9 @@ main(int argc, char ** argv) {
 
 	alen = sizeof(client_addr);
 
-	/* Here is where we accept connection requests */
+	/* Step 4: Accept connection requests */
 	bool endServer = false;
-	pid_t pid;
+	
 	for (;;) {
 		while ((rqst = accept(fd, (struct sockaddr *)&client_addr, &alen)) < 0) {
 			// if syscall 'accept' is interrupted then we break out of the while loop
@@ -92,11 +89,6 @@ main(int argc, char ** argv) {
 				exit(1);
 			}
 		}
-		// fork here and let parent continue to accept more clients
-			
-		// allow up to 5 children
-		
-		// Let child deal with the connection
 		// the socket for this accepted connection is rqst
 		printf("New User[ip=%s, port=%d] has joined the chat!\n", inet_ntoa(client_addr.sin_addr),
 			ntohs(client_addr.sin_port));
@@ -109,20 +101,21 @@ main(int argc, char ** argv) {
 			read(rqst, &buffer, MAX);
 			
 			if(buffer[0] == 'q')
-				break;
+				return -1;
 			else
 				printf("User[ip=%s, port=%d] says:> %s", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), buffer);
-			
+				
 			// Now the server-side user can write
 			bzero(buffer, MAX);
 			
 			printf ("Type to chat:> ");
 			fgets(buffer, MAX, stdin);
 			
+			write (rqst, &buffer, sizeof(buffer));
+
 			if (buffer[0] == 'q')
 				endServer = true;
 				
-			write (rqst, &buffer, sizeof(buffer));
 		}
 		
 		printf("User[ip=%s, port=%d] has left the chat\n", inet_ntoa(client_addr.sin_addr),
@@ -132,6 +125,8 @@ main(int argc, char ** argv) {
 		
 		if	(endServer)
 			break;
+		
+		return 0;
 	}
 	
 	close(fd);
