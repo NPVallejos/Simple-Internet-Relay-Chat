@@ -13,13 +13,14 @@
 
 int 
 main(int argc, char ** argv) {
-	if(argc < 0) {
+	if(argc < 2) {
 		printf("Please enter the server ip address.\n");
+		return -1;
 	}
 	
 	char * address;
 	int fd; // this will hold our socket file descriptor
-	int port = PORT; // port between clietn and server will be the same
+	int port = PORT; // port between client and server will be the same
 	struct sockaddr_in servaddr; // holds server information
 	struct hostent *hp; // host information of server
 	struct in_addr ip4addr; // server address - to be used by gethostbyaddr
@@ -74,8 +75,8 @@ main(int argc, char ** argv) {
 	while(1) {
 		// Write messages to the server
 		bzero (buffer, MAX); // clear the buffer
-		printf ("Type to chat:> ");
-		fgets (buffer, MAX, stdin); // get user input
+		fcntl(0, F_SETFL, O_NONBLOCK); // stdin_fileno is just 0 so we set it to non-blocking
+		read(0, &buffer, MAX);
 		
 		if(strlen(buffer) > 0) {
 			write (fd, &buffer, sizeof(buffer)); // transmit to server
@@ -84,7 +85,7 @@ main(int argc, char ** argv) {
 		}
 		
 		bzero (buffer, MAX); // clear the buffer
-		//read (fd, &buffer, sizeof(buffer));
+		read (fd, &buffer, sizeof(buffer));
 		
 		if(strlen(buffer) > 0) {
 			if	(buffer[0] == 'q')
@@ -93,6 +94,7 @@ main(int argc, char ** argv) {
 		}
 	}
 	
+	close(0);	
 	close(fd); // Close the socket
 	
 	return 0;
