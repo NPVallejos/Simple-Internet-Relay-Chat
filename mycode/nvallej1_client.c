@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h> // to set non-blocking
 
 #define MAX 256
 #define PORT 1234
@@ -23,6 +24,7 @@ main(int argc, char ** argv) {
 	struct hostent *hp; // host information of server
 	struct in_addr ip4addr; // server address - to be used by gethostbyaddr
 	char buffer[MAX]; // Used for terminal input for IRC Chat
+	int pid;
 	
 	address = argv[1];
 	
@@ -67,25 +69,28 @@ main(int argc, char ** argv) {
 	/* Step 4: Start IRC Chat */
 	printf ("\nType 'q' to exit chat room\n");
 
+	fcntl(fd, F_SETFL, O_NONBLOCK);
+	
 	while(1) {
 		// Write messages to the server
 		bzero (buffer, MAX); // clear the buffer
-		
 		printf ("Type to chat:> ");
 		fgets (buffer, MAX, stdin); // get user input
 		
-		write (fd, &buffer, sizeof(buffer)); // transmit to server
-		
-		if	(buffer[0] == 'q')
-			return -1;
+		if(strlen(buffer) > 0) {
+			write (fd, &buffer, sizeof(buffer)); // transmit to server
+			if	(buffer[0] == 'q')
+				break;
+		}
 		
 		bzero (buffer, MAX); // clear the buffer
-		read (fd, &buffer, sizeof(buffer));
+		//read (fd, &buffer, sizeof(buffer));
 		
-		printf ("> %s", buffer);
-		
-		if	(buffer[0] == 'q')
-			return -1;
+		if(strlen(buffer) > 0) {
+			if	(buffer[0] == 'q')
+				break;
+			printf ("> %s", buffer);
+		}
 	}
 	
 	close(fd); // Close the socket
