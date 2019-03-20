@@ -17,17 +17,15 @@
 
 int 
 main(int argc, char ** argv) {
-	int fd;
-	int rqst[MAX_CONNECTIONS]; // This represents the socket accepting the request
-	int fd_index = 0;
-	int num_connections = 0;
+	int fd;	// listening socket
+	int rqst[MAX_CONNECTIONS]; // This array stores socket fd's per accepted client
+	int num_connections = 0;	// keeps track of the total number of connected clients
 	char hostname[128]; // Stores the hostname
 	struct hostent *hp; // host information of server
 	struct sockaddr_in myaddr; // holds information about this server 
-	struct sockaddr_in client_addr[MAX_CONNECTIONS]; // client address's
-	socklen_t alen; // length of client address struct
-	int sockoptval = 1;
-	int pid;
+	struct sockaddr_in client_addr[MAX_CONNECTIONS]; // array storing each connected client's information
+	socklen_t alen; 		// length of a single client address struct
+	int sockoptval = 1; 	// used in conjunction with setsockopt
 	
 	/* Set client fd's to -1 */
 	for(int i = 0; i < MAX_CONNECTIONS; ++i) {
@@ -50,8 +48,8 @@ main(int argc, char ** argv) {
 	/* Step 2: Identify (name) a socket */
 	memset ((char *) &myaddr, 0, sizeof(myaddr));
 	
-	gethostname (hostname, sizeof(hostname));
-	hp = gethostbyname (hostname);
+	gethostname (hostname, sizeof(hostname));	// get hostname of server
+	hp = gethostbyname (hostname); // return a struct hostent given server hostname
 	if (!hp) {
 		perror ("gethostbyname: failed to get host name");
 		close(fd);
@@ -59,8 +57,8 @@ main(int argc, char ** argv) {
 	}
 	
 	// Fill in fields for struct sockaddr_in myaddr
-	myaddr.sin_family = AF_INET;
-	myaddr.sin_port = htons (PORT);
+	myaddr.sin_family = AF_INET; 	// This means ipv4 address
+	myaddr.sin_port = htons (PORT);	// converting PORT to a short/network byte order
 	memcpy ((void *)&myaddr.sin_addr, hp->h_addr_list[0], hp->h_length); // now we can put the host's address into the servaddr struct
 	
 	// now bind socket fd to myaddr

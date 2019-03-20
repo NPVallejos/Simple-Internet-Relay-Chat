@@ -1,16 +1,16 @@
 all: server.o client.o
 
 server.o:	server.c
-	gcc nvallej1_server.o -o server.exe
+	gcc nicholasvallejos_server.o -o server
 
 client.o:	client.c
-	gcc nvallej1_client.o -o client.exe
+	gcc nicholasvallejos_client.o -o client
 
-server.c:	nvallej1_server.c
-	gcc -Wall -Wextra -Wpedantic -c nvallej1_server.c
+server.c:	nicholasvallejos_server.c
+	gcc -Wall -Wextra -Wpedantic -c nicholasvallejos_server.c
 
-client.c:	nvallej1_client.o
-	gcc -Wall -Wextra -Wpedantic -c nvallej1_client.c
+client.c:	nicholasvallejos_client.o
+	gcc -Wall -Wextra -Wpedantic -c nicholasvallejos_client.c
 	
 clean:
-	rm -f nvallej1_server.o nvallej1_client.o server.exe client.exe
+	rm -f *.o server client
