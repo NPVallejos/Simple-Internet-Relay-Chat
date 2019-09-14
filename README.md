@@ -1,3 +1,7 @@
+# What this project is about
+I made a simple IRC that follows the TCP.<br/>
+The purpose of this project was to learn about network programming while building a fun little chat system that works in terminal.
+
 # Compiling code (On a linux machine)
 Type 'make' and it will compile both the server and client code
 
